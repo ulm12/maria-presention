@@ -1,0 +1,83 @@
+===============================================
+SETUP GOOGLE APPS SCRIPT UNTUK WRITE KE SPREADSHEET
+===============================================
+
+Google Sheets API dengan API Key HANYA bisa READ data.
+Untuk WRITE data, Anda perlu membuat Google Apps Script sebagai backend.
+
+LANGKAH-LANGKAH:
+
+1. Buka Google Spreadsheet Anda:
+   https://docs.google.com/spreadsheets/d/1stoWPEO4R45LzD5jzzlOduvkSMWcE3ENsGdXPGG2tWE/
+
+2. Klik Extensions > Apps Script
+
+3. Hapus semua kode yang ada, lalu paste kode berikut:
+
+---------- MULAI KODE ----------
+
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    if (data.action === 'checkin') {
+      var sheet = ss.getSheetByName(data.sheetName || 'PRESENSI');
+      sheet.appendRow(data.rowData);
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, message: 'Check-in berhasil' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    if (data.action === 'checkout') {
+      var sheet = ss.getSheetByName(data.sheetName || 'PRESENSI');
+      var range = sheet.getRange('D' + data.rowIndex);
+      range.setValue(data.jam_pulang);
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, message: 'Check-out berhasil' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, message: 'Unknown action' }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, message: error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  return ContentService
+    .createTextOutput(JSON.stringify({ status: 'OK', message: 'Apps Script is running' }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+---------- AKHIR KODE ----------
+
+4. Klik tombol "Deploy" > "New deployment"
+
+5. Di popup:
+   - Klik ikon gear di samping "Select type" > pilih "Web app"
+   - Description: "Attendance API"
+   - Execute as: "Me"
+   - Who has access: "Anyone"
+   - Klik "Deploy"
+
+6. Copy URL yang diberikan (format: https://script.google.com/macros/s/xxx/exec)
+
+7. Tambahkan URL tersebut ke Environment Variables di Vercel:
+   - Nama: NEXT_PUBLIC_APPS_SCRIPT_URL
+   - Value: [URL yang Anda copy]
+
+8. Redeploy aplikasi Anda
+
+===============================================
+CATATAN PENTING:
+- Pastikan sheet "LOGIN" dan "PRESENSI" sudah ada
+- Sheet LOGIN harus memiliki kolom: id, nip, nama, password
+- Sheet PRESENSI harus memiliki kolom: id, nama, jam_masuk, jam_pulang, hari, tanggal, pekerjaan, status, dokumentasi, location
+- Jika belum ada Apps Script URL, aplikasi akan menggunakan localStorage sebagai fallback (Demo Mode)
+===============================================
